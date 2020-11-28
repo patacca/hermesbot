@@ -1,0 +1,2 @@
+TOKEN = 'Your token'
+LOG_FILE = './hermes.log'
