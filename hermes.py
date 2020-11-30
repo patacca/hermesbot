@@ -57,9 +57,20 @@ def daemonMotaword(context):
 	newProjects = []
 	oldProjects.setdefault(chatId, matches)
 	for projectId in matches:
-		if projectId not in oldProjects[chatId]:
-			newProjects.append(projectId)
-			oldProjects[chatId].append(projectId)
+		if projectId in oldProjects[chatId]:
+			continue
+		
+		divStart = r.text.find(projectId)
+		aStart = r.text[divStart:].find('<a class')
+		aEnd = r.text[divStart+aStart:].find('</a>')
+		aBody = r.text[divStart+aStart:divStart+aStart+aEnd]
+		
+		if 'disabled' in aBody:
+			logger.info(f'{projectId} is not ready yet. It seems to be disabled')
+			continue
+		
+		newProjects.append(projectId)
+		oldProjects[chatId].append(projectId)
 	if newProjects:
 		context.bot.send_message(chat_id=chatId, text=f'Hurry up! There are {len(newProjects)} new projects to translate')
 
