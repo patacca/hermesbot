@@ -1,7 +1,7 @@
 #!/bin/env python3
 
 from telegram.ext import Updater, CommandHandler, ConversationHandler, MessageHandler, Filters
-from config import APP_TOKEN, LOG_FILE
+from config import APP_TOKEN, BOT_TOKEN, LOG_FILE
 import requests, re, logging, time, sys
 
 BASE_URL = 'https://api.motaword.com'
@@ -118,7 +118,7 @@ if __name__ == '__main__':
 	
 	logger.info('Hermes bot is starting')
 	
-	updater = Updater(token=TOKEN, use_context=True)
+	updater = Updater(token=BOT_TOKEN, use_context=True)
 	dispatcher = updater.dispatcher
 	
 	conversationHandler = ConversationHandler(
