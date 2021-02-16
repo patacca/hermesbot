@@ -4,13 +4,14 @@ from telegram.ext import Updater, CommandHandler, ConversationHandler, MessageHa
 from config import TOKEN, LOG_FILE
 import requests, re, logging, time, sys
 
-BASE_URL = 'https://www.motaword.com'
+BASE_URL = 'https://api.motaword.com'
 headers = {
 	'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; rv:71.0) Gecko/20100101 Firefox/71.0'
 }
 EMAIL_STATE, PASSWORD_STATE = range(2)
 
 # shared variable
+_TOKEN = None # This is the OAuth2 token for logging in
 accounts = {}
 oldProjects = {}
 _session = None
@@ -25,54 +26,49 @@ def getSession():
 	return _session
 
 def motawordLogin(username, password):
+	global _TOKEN
+	
 	logger.info('Logging in to Motaword')
 	session = getSession()
 	
-	r = session.get(BASE_URL + '/login')
-	m = re.findall('.*_token" value="(.*)">.*', r.text)
-	token = m[0]
-	logger.debug(f'The login csrf token is {token}')
-	
-	r = session.post(BASE_URL + '/login', data={'_token': token, 'email': username, 'password': password})
-	logger.debug('Logged in')
+	r = session.post(BASE_URL + '/token', headers={f'Authorization: Basic {APP_TOKEN}'}, data={'grant_type': 'password', 'username': username, 'password': password, 'scope': 'default privileged'})
+	if r.ok:
+		_TOKEN = r.json()['access_token']
+		session.headers.update({'Authorization': f'Bearer {_TOKEN}'})
+		logger.debug('Logged in')
+	else:
+		logger.error(f'Cannot log in: HTTP {r.status_code}')
 
 def daemonMotaword(context):
 	chatId = context.job.context['chatId']
 	session = getSession()
 	
 	logger.debug('Getting projects...')
-	r = session.get(BASE_URL + '/vendor/projects', allow_redirects=False)
-	if r.status_code == 302:
+	r = session.get(BASE_URL + '/projects')
+	if r.status_code == 401: # Unauthorized
 		motawordLogin(accounts[chatId]['email'], accounts[chatId]['password'])
 		return
 	
-	matches = re.findall('project_[0-9]+', r.text)
-	logger.debug(f'Got {len(matches)} projects: {str(matches)}')
-	if len(matches) == 0:
-		logger.error('Error while fetching projects')
-		logger.error(f'{r.status_code}')
-		logger.error(f'{r.text}')
-		sys.exit(1)
+	projects = r.json()['projects']
+	logger.debug(f'Got {len(projects)} projects: {str(projects)}')
 	
 	newProjects = []
-	oldProjects.setdefault(chatId, matches)
-	for projectId in matches:
-		if projectId in oldProjects[chatId]:
+	oldProjects.setdefault(chatId, [])
+	for project in projects:
+		if project['id'] in oldProjects[chatId]:
 			continue
 		
-		divStart = r.text.find(projectId)
-		aStart = r.text[divStart:].find('<a class')
-		aEnd = r.text[divStart+aStart:].find('</a>')
-		aBody = r.text[divStart+aStart:divStart+aStart+aEnd]
+		# Check for status == disabled
+		# ~ if 'disabled' in aBody:
+			# ~ logger.info(f'{projectId} is not ready yet. It seems to be disabled')
+			# ~ continue
 		
-		if 'disabled' in aBody:
-			logger.info(f'{projectId} is not ready yet. It seems to be disabled')
-			continue
-		
-		newProjects.append(projectId)
-		oldProjects[chatId].append(projectId)
-	if newProjects:
+		newProjects.append(project['id'])
+		oldProjects[chatId].append(project['id'])
+	if len(newProjects) > 1:
 		context.bot.send_message(chat_id=chatId, text=f'Hurry up! There are {len(newProjects)} new projects to translate')
+	if len(newProjects) == 1:
+		context.bot.send_message(chat_id=chatId, text=f'Hurry up! There is one new project to translate')
 
 def start(update, context):
 	if update.effective_chat.id in accounts:

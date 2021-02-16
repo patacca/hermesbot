@@ -1,2 +1,2 @@
-TOKEN = 'Your token'
+APP_TOKEN = 'The app token'
 LOG_FILE = './hermes.log'
