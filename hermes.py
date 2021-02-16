@@ -1,7 +1,7 @@
 #!/bin/env python3
 
 from telegram.ext import Updater, CommandHandler, ConversationHandler, MessageHandler, Filters
-from config import TOKEN, LOG_FILE
+from config import APP_TOKEN, LOG_FILE
 import requests, re, logging, time, sys
 
 BASE_URL = 'https://api.motaword.com'
