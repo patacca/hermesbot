@@ -31,7 +31,7 @@ def motawordLogin(username, password):
 	logger.info('Logging in to Motaword')
 	session = getSession()
 	
-	r = session.post(BASE_URL + '/token', headers={f'Authorization: Basic {APP_TOKEN}'}, data={'grant_type': 'password', 'username': username, 'password': password, 'scope': 'default privileged'})
+	r = session.post(BASE_URL + '/token', headers={'Authorization': f'Basic {APP_TOKEN}'}, data={'grant_type': 'password', 'username': username, 'password': password, 'scope': 'default privileged'})
 	if r.ok:
 		_TOKEN = r.json()['access_token']
 		session.headers.update({'Authorization': f'Bearer {_TOKEN}'})
@@ -132,3 +132,4 @@ if __name__ == '__main__':
 	dispatcher.add_handler(conversationHandler)
 	
 	updater.start_polling()
+	updater.idle()
