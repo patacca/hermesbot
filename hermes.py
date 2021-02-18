@@ -44,7 +44,7 @@ def daemonMotaword(context):
 	session = getSession()
 	
 	logger.debug('Getting projects...')
-	r = session.get(BASE_URL + '/projects')
+	r = session.get(BASE_URL + '/projects/vendor')
 	if r.status_code == 401: # Unauthorized
 		motawordLogin(accounts[chatId]['email'], accounts[chatId]['password'])
 		return
